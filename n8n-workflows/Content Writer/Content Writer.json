@@ -1,0 +1,561 @@
+{
+  "name": "Content Writer",
+  "nodes": [
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a world-class content creator synthesizing expert insights.\n\nBased on the intent, reasoning, emotional framing, and outline below, write a full social media post for {{ $item(\"0\").$node[\"Webhook\"].json[\"body\"][\"Platform\"] }} platform.\n\nGuidelines:\n- The post must be formatted as a direct, human-sounding post — no labeling of sections.\n- Begin with a strong hook in the first line.\n- Use natural line breaks for rhythm and clarity.\n- Write in the specified tone (raw, witty, professional, etc.).\n- End with a relatable CTA (e.g. “Tag someone”, “Share your story”, “DM me”).\n- Add 3–5 trending, niche-relevant hashtags at the end. Avoid broad tags like #love or #followme.\n\nDO NOT write any explanations or analysis. Output only the final, ready-to-publish post.\n\nInputs:\nIntent: {{ $item(\"0\").$node[\"Edit Fields1\"].json[\"intent\"] }}\nReasoning: {{ $item(\"0\").$node[\"Edit Fields2\"].json[\"reasoning\"] }}\nEmotion: {{ $item(\"0\").$node[\"Edit Fields3\"].json[\"emotional_framing\"] }} \nOutline: {{ $item(\"0\").$node[\"Edit Fields4\"].json[\"outline\"] }}\n",
+              "role": "system"
+            },
+            {
+              "content": "=Tone: {{ $item(\"0\").$node[\"Edit Fields\"].json[\"Tone\"] }}",
+              "role": "assistant"
+            }
+          ]
+        },
+        "options": {
+          "frequency_penalty": 0.3,
+          "maxTokens": 800,
+          "presence_penalty": 0.6,
+          "temperature": 0.9,
+          "topP": 0.9
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -660,
+        -440
+      ],
+      "id": "77733b6b-9ed6-41ba-b864-e8983f764a1c",
+      "name": "Generate Content",
+      "credentials": {
+        "openAiApi": {
+          "id": "uuznxbhE6EwYPlC1",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "markdownToHtml",
+        "markdown": "={{ $json.message.content }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        -300,
+        -440
+      ],
+      "id": "991d717d-aebd-495c-918a-39c14855e1a8",
+      "name": "Markdown"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "e93740ce-c11a-411b-9b86-856d0d75a328",
+        "responseMode": "responseNode",
+        "options": {
+          "ignoreBots": true
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -2260,
+        -620
+      ],
+      "id": "16fa6154-d277-435d-9611-b083beb557fe",
+      "name": "Webhook",
+      "webhookId": "e93740ce-c11a-411b-9b86-856d0d75a328"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Topic: {{ $item(\"0\").$node[\"Edit Fields\"].json[\"Topic\"] }}, \nPlatform for which to generate content: {{ $item(\"0\").$node[\"Edit Fields\"].json[\"Platform\"] }},\nTone: {{ $item(\"0\").$node[\"Edit Fields\"].json[\"Tone\"] }}"
+            },
+            {
+              "content": "=You are a brand strategist helping clarify a user's content goal.\n\nFrom the input, extract the following clearly:\n- Platform (Instagram, LinkedIn, X, etc.)\n- Niche or industry (e.g. fitness coach, skincare, SaaS)\n- Type of post (e.g. story, tip, motivation, carousel)\n- Brand tone (e.g. raw, witty, bold, inspirational)\n- Audience type (e.g. solopreneurs, moms, Gen Z, founders)\n- Objective (e.g. engagement, trust, relatability, sales)\n\nReturn the results as a bullet list.",
+              "role": "system"
+            },
+            {
+              "content": "Tone:Raw & Relatable\t\t\t\nWriting Style: Unfiltered, personal, messy-in-a-good-way\n\nTone: Fun & Bold\t\t\nWriting Style: Confident, witty, rebellious\n\nTone: Inspirational\t\nWriting Style: Uplifting, purpose-driven, emotional\n\nTone: Professional\nWriting Style: Polished, value-rich, LinkedIn-style\n\nTone: Educational \nWriting Style: Informative, clear, helpful",
+              "role": "assistant"
+            }
+          ]
+        },
+        "options": {
+          "frequency_penalty": 0.1,
+          "maxTokens": 300,
+          "presence_penalty": 0.1,
+          "temperature": 0.4,
+          "topP": 0.9
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -1420,
+        -1000
+      ],
+      "id": "d1333c19-fcd0-4cf5-ad0d-2b8771ce87f6",
+      "name": "Intent",
+      "credentials": {
+        "openAiApi": {
+          "id": "uuznxbhE6EwYPlC1",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b65c22fa-bbfa-4803-9a96-7e37b1e2ec48",
+              "name": "Topic",
+              "value": "={{ $item(\"0\").$node[\"Webhook\"].json[\"body\"][\"Topic\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "46573cbd-a6ef-408e-a8c4-413789a1d3f2",
+              "name": "Platform",
+              "value": "={{ $item(\"0\").$node[\"Webhook\"].json[\"body\"][\"Platform\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "94334cd1-6a44-4a0d-9c00-bd59e57b8081",
+              "name": "Tone",
+              "value": "={{ $item(\"0\").$node[\"Webhook\"].json[\"body\"][\"Tone\"] }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {
+          "ignoreConversionErrors": true
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1940,
+        -620
+      ],
+      "id": "24f05058-d135-4e23-9bfa-53a61fab3acd",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=User Prompt: Topic: {{ $('Edit Fields').item.json.Topic }}, Platform for which to generate content: {{ $('Edit Fields').item.json.Platform }} and Tone: {{ $('Edit Fields').item.json.Tone }}"
+            },
+            {
+              "content": "=You are a content strategist thinking through the \"why\" behind a post.\n\nUsing the user prompt and intent, answer:\n- What key belief or pain point are we addressing?\n- What myth or limiting mindset can we challenge?\n- What takeaway should the reader walk away with?\n- What shift in thinking will make this valuable?\n\nBe strategic and reflective — like a seasoned creator planning a meaningful post.\n\nIntent: \n{{ $json.intent }}\n\n\n",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {
+          "frequency_penalty": 0.2,
+          "maxTokens": 400,
+          "presence_penalty": 0.3,
+          "temperature": 0.6,
+          "topP": 0.9
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -1420,
+        -760
+      ],
+      "id": "6d96e290-ba63-4edf-9e83-7deeedd3c12b",
+      "name": "Reasoning",
+      "credentials": {
+        "openAiApi": {
+          "id": "uuznxbhE6EwYPlC1",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Intent: {{ $item(\"0\").$node[\"Intent\"].json[\"message\"][\"content\"] }}\n"
+            },
+            {
+              "content": "=You are a copy strategist planning the structure of a high-performing post.\n\nUsing the intent and emotional framing, create a post outline with:\n- Hook idea (short, scroll-stopping)\n- Story or idea summary\n- Pivot or punchline\n- CTA idea (engagement-driven)\n- Hashtag themes or inspiration\n\nWrite in bullet points. Do not write the full post.\n\nintent:\n{{ $('Edit Fields1').item.json.intent }}\n\nemotional framing: \n{{ $json.emotional_framing }}\n\n",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {
+          "frequency_penalty": 0.1,
+          "maxTokens": 350,
+          "presence_penalty": 0.3,
+          "temperature": 0.7,
+          "topP": 0.9
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -1420,
+        -280
+      ],
+      "id": "29fa131d-9bf4-4bb4-928c-0a842b39a219",
+      "name": "Outline",
+      "credentials": {
+        "openAiApi": {
+          "id": "uuznxbhE6EwYPlC1",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=User input: Topic: {{ $('Edit Fields').item.json.Topic }}, Platform for which to generate content: {{ $('Edit Fields').item.json.Platform }} and Tone: {{ $('Edit Fields').item.json.Tone }}"
+            },
+            {
+              "content": "=You are a copywriter skilled in emotional marketing. Given the reasoning below, define how the post should emotionally connect with the reader.\n\nUsing the user’s prompt and reasoning, define:\n- Core emotion to evoke (e.g. hope, frustration, courage, belonging)\n- Emotional arc (e.g. pain → relief, stuck → empowered)\n- Tone modifiers (e.g. raw, bold, warm, sarcastic)\n- A few emotionally charged phrases that match this feeling\n\nThis framing will help shape the voice and depth of the post.\n\nReasoning:\n{{ $json.reasoning }}\n",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -1420,
+        -520
+      ],
+      "id": "646bcd5b-407b-45a6-999b-c993f44efa3f",
+      "name": "Emotional Framing",
+      "credentials": {
+        "openAiApi": {
+          "id": "uuznxbhE6EwYPlC1",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a9b3afc0-b3b0-4567-8ce6-e42534fee584",
+              "name": "intent",
+              "value": "={{ $json.message.content }}",
+              "type": "string"
+            },
+            {
+              "id": "2dbb2c3b-96c9-4f4d-95e0-4abb855494b0",
+              "name": "role",
+              "value": "={{ $json.message.role }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1040,
+        -1000
+      ],
+      "id": "c6f80519-8ca5-4160-96f6-e527c3e91769",
+      "name": "Edit Fields1",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9a53f6a9-e0e0-4336-b992-55188b9eb36e",
+              "name": "reasoning",
+              "value": "={{ $json.message.content }}",
+              "type": "string"
+            },
+            {
+              "id": "8c27a4f0-4092-490f-99c4-aa54cd066804",
+              "name": "role",
+              "value": "={{ $json.message.role }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1040,
+        -760
+      ],
+      "id": "92fcf85c-df49-48e9-9af4-57d6a0fbb89d",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7f7e928e-0818-499c-8258-61854f67825b",
+              "name": "emotional_framing",
+              "value": "={{ $json.message.content }}",
+              "type": "string"
+            },
+            {
+              "id": "bd81939d-698a-48c3-ac59-56a444612b21",
+              "name": "message.role",
+              "value": "={{ $json.message.role }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1040,
+        -520
+      ],
+      "id": "26bc66fe-2f79-4f32-a00b-d90ade391927",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "33737460-7200-4cfa-81e0-df352bee695f",
+              "name": "outline",
+              "value": "={{ $json.message.content }}",
+              "type": "string"
+            },
+            {
+              "id": "3a2f151a-c520-42d3-aff2-3e397f06c470",
+              "name": "role",
+              "value": "={{ $json.message.role }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1060,
+        -280
+      ],
+      "id": "1f8eeeb6-a31a-4aae-a56a-30b6c73de16c",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -60,
+        -440
+      ],
+      "id": "7eb6a564-5c04-4206-8c6e-656683cbf0f5",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Generate Content": {
+      "main": [
+        [
+          {
+            "node": "Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markdown": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reasoning": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Outline": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emotional Framing": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Reasoning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Emotional Framing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Outline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Generate Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "254e4028-8c40-456d-a3c7-55a90adc1638",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f2694662f3c60866fe428a3878e665db20ef9aab303225123f1baa948822ddb9"
+  },
+  "id": "zgNIfEmALkGbEIaz",
+  "tags": []
+}

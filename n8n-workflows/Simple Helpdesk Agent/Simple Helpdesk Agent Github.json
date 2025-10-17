@@ -1,0 +1,549 @@
+{
+  "name": "Simple Helpdesk Agent Github",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "### 📚 Load Data Flow",
+        "height": 720,
+        "width": 1000,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -840,
+        -40
+      ],
+      "typeVersion": 1,
+      "id": "1e1dbece-a3f2-4f13-aa53-a08041d5f7d6",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=# System Prompt\n\nYou are a helpdesk engineer. Your task is to retrieve matching rows based on user input, specifically using the fields:\n\n- Serial Number\n- Model\n- Manufacturer\n\n## Responsibilities\n\n- Accept structured input from the user (e.g., serial number, model, manufacturer).\n- Search the database using the either the serial number, model or manufacturer to answer the question\n- Return the matching rows in a readable format (JSON or table).propriately.\n- Do not hallucinate\n- Return only one single matching record from the database\n- Do not answer if the query is not related to the serial number, model or manufacturer\n\n## Constraints\n\n- Limit query results to 1, unless the query is generically asking about the collection of models or manufacturer count\n\n## Example Input\n\n- serial_number is SN123456\n- model is ThinkPad X1\n- manufacturer is Lenovo\n- who owns the machine with serial number SN123456\n- how many Lenovo machines are in the database\n- how many lenovo machines are in the deployed state"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        860,
+        100
+      ],
+      "id": "5aad00ce-5f8b-4899-a82d-9d693518b343",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hi there! 👋\nHow can I assist?",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        380,
+        20
+      ],
+      "id": "9b7feda8-0e14-48e0-8397-6c1f89a55a78",
+      "name": "When chat message received",
+      "webhookId": "d82f8c3d-a342-438b-944a-ea53a8322164"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        920,
+        580
+      ],
+      "id": "e8d126a1-bff5-4f27-b71c-f1a7e15bccfa",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "uuznxbhE6EwYPlC1",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### 🐕 2. Retriever Flow",
+        "height": 820,
+        "width": 1320,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        340,
+        -40
+      ],
+      "typeVersion": 1,
+      "id": "502e871a-ad77-4b3e-bee3-a99e766f2a86",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "formTitle": "Upload your CSV data",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Upload your file(s)",
+              "fieldType": "file",
+              "acceptFileTypes": "=.csv",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -820,
+        20
+      ],
+      "id": "29db9c8e-9f75-41bd-9c09-92cd5e20f5fc",
+      "name": "file_upload",
+      "webhookId": "14bc3925-d8c0-40a0-bb02-4c9936778b07"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": "asset_inventory_embeddings",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [
+        -300,
+        0
+      ],
+      "id": "a4da4471-45bf-4bdd-b4fc-3227f1160e4e",
+      "name": "Postgres PGVector Store",
+      "credentials": {
+        "postgres": {
+          "id": "3QdMo5arckxrHmyU",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "textSplittingMode": "custom",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        -620,
+        340
+      ],
+      "id": "04931e1a-c260-4df2-b7f7-9fe471bf84a2",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-ada-002",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        720
+      ],
+      "id": "3e39af19-71ea-41a5-93c2-30f1f8d77d08",
+      "name": "Embeddings OpenAI1",
+      "credentials": {
+        "openAiApi": {
+          "id": "uuznxbhE6EwYPlC1",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        1200,
+        600
+      ],
+      "id": "e615127e-ab73-4e16-9c8d-c4ea3336e93f",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "3QdMo5arckxrHmyU",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chunkSize": 800,
+        "chunkOverlap": 20,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        -660,
+        520
+      ],
+      "id": "ec723af4-d952-47c7-a6e8-bbfac763936e",
+      "name": "Text Spliter"
+    },
+    {
+      "parameters": {
+        "description": "={{ $json.chatInput }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        420
+      ],
+      "id": "3f58059e-b356-4094-ae8b-e66131a14de1",
+      "name": "Answer questions with a vector store"
+    },
+    {
+      "parameters": {
+        "tableName": "asset_inventory_embeddings",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [
+        440,
+        640
+      ],
+      "id": "2544d2e8-35f3-4a3d-8611-8dc5a1886b75",
+      "name": "Postgres PGVector Store1",
+      "credentials": {
+        "postgres": {
+          "id": "3QdMo5arckxrHmyU",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "905b28d1-0095-45f5-a31f-1dcb75e6e177",
+              "leftValue": "={{ $json.chatInput }}",
+              "rightValue": "ITAM",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "6271b9e8-447f-4396-ac2d-27c62fd0007f",
+              "leftValue": "={{ $json.chatInput }}",
+              "rightValue": "Oomnitza",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "bce4a3bd-7a76-47ff-90c7-35abd7bdfbfa",
+              "leftValue": "={{ $json.chatInput }}",
+              "rightValue": "Device42",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "64c6c116-b714-4a96-9095-1fcbeb0728dc",
+              "leftValue": "={{ $json.chatInput }}",
+              "rightValue": "asset management",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        600,
+        20
+      ],
+      "id": "aa4d7dc5-0514-4ecf-83ac-638109140831",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "V51JOH9jegJ76xT5",
+          "mode": "list",
+          "cachedResultName": "ChatBotProject"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "data": "={{ $json.chatInput }}",
+            "sessionId": "={{ $json.sessionId }}"
+          },
+          "matchingColumns": [
+            "data"
+          ],
+          "schema": [
+            {
+              "id": "data",
+              "displayName": "data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "sessionId",
+              "displayName": "sessionId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1300,
+        0
+      ],
+      "id": "d35bb1dd-794f-4761-9d8f-de7ebf28c6bf",
+      "name": "Execute Workflow"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "73bf130b-1b37-4c8e-8cd2-b2da20c2e614",
+              "leftValue": "={{ $json[\"Upload your file(s)\"][0].mimetype }}",
+              "rightValue": "text/csv",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -640,
+        20
+      ],
+      "id": "869cf58d-424d-42f9-96a2-7d0e0f287779",
+      "name": "If1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Answer questions with a vector store",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "file_upload": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Postgres PGVector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Postgres PGVector Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Postgres PGVector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Spliter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer questions with a vector store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres PGVector Store1": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Answer questions with a vector store",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        []
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Postgres PGVector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d5a4229f-3335-49ab-b2af-657b82e70801",
+  "meta": {
+    "templateId": "rag-starter-template",
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f2694662f3c60866fe428a3878e665db20ef9aab303225123f1baa948822ddb9"
+  },
+  "id": "P2kBHNUT26zc0JQp",
+  "tags": []
+}

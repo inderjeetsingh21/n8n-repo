@@ -1,0 +1,414 @@
+{
+  "name": "Website-Scrapper",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "={{ $json.url.split('/').slice(0, 3).join('/') }}/robots.txt",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 3
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "bc98448f-3804-460b-b3e1-a73948654fc1",
+      "name": "Check robots.txt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        160,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 5
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "1ac0e369-003b-4d5e-bed8-54baa12a14cf",
+      "name": "Scrape Website",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        592,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json, null, 2) }}",
+        "options": {}
+      },
+      "id": "4f6a5928-8477-467e-be4c-f4e5d437a7f3",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1776,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json, null, 2) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "45a1cfa4-58a5-41bd-a992-33cc9e7be48a",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate required input parameters\nconst body = $input.first().json.body || $input.first().json.chatInput;\n\nif (!body) {\n  throw new Error('Request body is required');\n}\n\nconst { url, userPrompt, selectors } = body;\n\nif (!url) {\n  throw new Error('URL is required');\n}\n\nif (!userPrompt) {\n  throw new Error('User prompt is required for JSON formatting');\n}\n\n// Validate URL format using regex\nconst urlRegex = /^https?:\\/\\/(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b([-a-zA-Z0-9()@:%_\\+.~#?&//=]*)$/;\nif (!urlRegex.test(url)) {\n  throw new Error('Invalid URL format. Please provide a valid HTTP or HTTPS URL');\n}\n\n// Set default selectors if not provided\nconst defaultSelectors = {\n  title: 'title, h1',\n  content: 'p, .content, article',\n  links: 'a[href]',\n  images: 'img[src]'\n};\n\nreturn {\n  json: {\n    url: url,\n    userPrompt: userPrompt,\n    selectors: selectors || defaultSelectors,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        -64
+      ],
+      "id": "3125095a-07d3-478f-bee4-c63180f8d371",
+      "name": "validate-input"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Analyze robots.txt content for scraping permissions\nconst robotsResponse = $input.first().json;\nconst originalData = $('validate-input').first().json;\n\nlet isAllowed = true;\nlet robotsInfo = 'No robots.txt found - proceeding with caution';\n\nif (robotsResponse && !robotsResponse.error) {\n  const robotsContent = robotsResponse.data || '';\n  robotsInfo = 'Robots.txt found and analyzed';\n  \n  // Simple robots.txt analysis\n  const lines = robotsContent.toLowerCase().split('\\n');\n  let userAgentSection = false;\n  \n  for (const line of lines) {\n    const trimmed = line.trim();\n    \n    if (trimmed.startsWith('user-agent:')) {\n      userAgentSection = trimmed.includes('*') || trimmed.includes('n8n');\n    }\n    \n    if (userAgentSection && trimmed.startsWith('disallow:')) {\n      const path = trimmed.replace('disallow:', '').trim();\n      if (path === '/' || (path && originalData.url.includes(path))) {\n        isAllowed = false;\n        break;\n      }\n    }\n  }\n}\n\nif (!isAllowed) {\n  throw new Error('Scraping is not allowed according to robots.txt');\n}\n\nreturn {\n  json: {\n    ...originalData,\n    robotsInfo: robotsInfo,\n    scrapingAllowed: isAllowed\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        -64
+      ],
+      "id": "54750f5d-e8fe-4541-874c-9b8ddfa709f0",
+      "name": "analyze-robots"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract data using custom parsing to avoid trim errors\nconst htmlContent = $input.first().json.data;\nconst selectors = $('analyze-robots').first().json.selectors;\n\n// Simple HTML parsing function\nfunction extractFromHTML(html, selector, attribute = null, returnArray = false) {\n  try {\n    const results = [];\n    \n    // Simple regex-based extraction for common selectors\n    if (selector.includes('title')) {\n      const titleMatch = html.match(/<title[^>]*>([^<]*)<\\/title>/i);\n      if (titleMatch) results.push(titleMatch[1].trim());\n    }\n    \n    if (selector.includes('h1')) {\n      const h1Matches = html.match(/<h1[^>]*>([^<]*)<\\/h1>/gi);\n      if (h1Matches) {\n        h1Matches.forEach(match => {\n          const content = match.replace(/<[^>]*>/g, '').trim();\n          if (content) results.push(content);\n        });\n      }\n    }\n    \n    if (selector.includes('p')) {\n      const pMatches = html.match(/<p[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\\/p>/gi);\n      if (pMatches) {\n        pMatches.forEach(match => {\n          const content = match.replace(/<[^>]*>/g, '').trim();\n          if (content && content.length > 10) results.push(content);\n        });\n      }\n    }\n    \n    if (attribute === 'href') {\n      const linkMatches = html.match(/<a[^>]*href=[\"']([^\"']*)[\"'][^>]*>/gi);\n      if (linkMatches) {\n        linkMatches.forEach(match => {\n          const hrefMatch = match.match(/href=[\"']([^\"']*)[\"']/i);\n          if (hrefMatch && hrefMatch[1]) results.push(hrefMatch[1]);\n        });\n      }\n    }\n    \n    if (attribute === 'src') {\n      const imgMatches = html.match(/<img[^>]*src=[\"']([^\"']*)[\"'][^>]*>/gi);\n      if (imgMatches) {\n        imgMatches.forEach(match => {\n          const srcMatch = match.match(/src=[\"']([^\"']*)[\"']/i);\n          if (srcMatch && srcMatch[1]) results.push(srcMatch[1]);\n        });\n      }\n    }\n    \n    return returnArray ? results : (results[0] || null);\n  } catch (error) {\n    return returnArray ? [] : null;\n  }\n}\n\n// Extract data safely\nconst extractedData = {\n  title: extractFromHTML(htmlContent, selectors.title),\n  content: extractFromHTML(htmlContent, selectors.content, null, true),\n  links: extractFromHTML(htmlContent, selectors.links, 'href', true),\n  images: extractFromHTML(htmlContent, selectors.images, 'src', true)\n};\n\n// Clean and filter results\nif (extractedData.content) {\n  extractedData.content = extractedData.content.filter(text => text && text.length > 10);\n}\n\nif (extractedData.links) {\n  extractedData.links = extractedData.links.filter(link => link && (link.startsWith('http') || link.startsWith('/')));\n}\n\nif (extractedData.images) {\n  extractedData.images = extractedData.images.filter(img => img && (img.startsWith('http') || img.startsWith('/')));\n}\n\nreturn {\n  json: extractedData\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        -64
+      ],
+      "id": "674b750c-f449-4c0e-b391-6652ab3f6272",
+      "name": "extract-data"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "==User Requirements: {{ $item(\"0\").$node[\"validate-input\"].json[\"userPrompt\"] }}\\n\\nScraped Data:\\n{{ JSON.stringify($json, null, 2) }}\\n\\nPlease format this data into JSON according to the user's requirements\n"
+            },
+            {
+              "content": "=You are a data formatting assistant. Format the scraped website data into a clean JSON structure based on the user's requirements. Return only valid JSON without any explanation or markdown formatting.",
+              "role": "system"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1008,
+        -64
+      ],
+      "id": "10fa249c-043f-4a7b-bce7-3c73ee856f82",
+      "name": "AI Formatting",
+      "credentials": {
+        "openAiApi": {
+          "id": "Q6k9lIWlKfszMOHE",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Clean and validate the AI-formatted JSON\nconst aiResponse = $input.first().json;\nconst originalData = $item(\"0\").$node[\"analyze-robots\"].json;\nconsole.log(originalData);\nconst extractedData = $item(\"0\").$node[\"extract-data\"].json;\n\nlet formattedData;\ntry {\n  // Handle different AI response formats\n  let aiContent;\n  \n  // Check if it's an array (multiple responses)\n  if (Array.isArray(aiResponse) && aiResponse.length > 0) {\n    // Get the first response\n    const firstResponse = aiResponse[0];\n    aiContent = firstResponse.message?.content || firstResponse.choices?.[0]?.message?.content;\n  } else {\n    // Single response format\n    aiContent = aiResponse.message?.content || aiResponse.choices?.[0]?.message?.content || aiResponse.content;\n  }\n  \n  console.log('AI Content:', aiContent);\n  \n  // If AI content is already an object, use it directly\n  if (typeof aiContent === 'object' && aiContent !== null) {\n    formattedData = aiContent;\n  } else if (typeof aiContent === 'string') {\n    // Try to parse as JSON string\n    let jsonString = aiContent;\n    \n    // Remove markdown code blocks if they exist\n    if (jsonString.includes('```')) {\n      jsonString = jsonString.replace(/```json\\s*|```\\s*/g, '').trim();\n    }\n    \n    // Try parsing the JSON\n    formattedData = JSON.parse(jsonString);\n  } else {\n    throw new Error('AI content is not in expected format');\n  }\n  \n  // Validate that it's actually an object\n  if (typeof formattedData !== 'object' || formattedData === null) {\n    throw new Error('AI response is not a valid JSON object');\n  }\n  \n} catch (error) {\n  console.log('AI JSON parsing failed, using fallback:', error.message);\n  console.log('Raw AI response:', JSON.stringify(aiResponse, null, 2));\n  \n  // Fallback to basic formatting\n  formattedData = {\n    url: originalData.url,\n    scrapedAt: originalData.timestamp,\n    title: extractedData.title || 'No title found',\n    content: extractedData.content || [],\n    links: extractedData.links || [],\n    images: extractedData.images || [],\n    metadata: {\n      totalLinks: (extractedData.links || []).length,\n      totalImages: (extractedData.images || []).length,\n      contentBlocks: (extractedData.content || []).length,\n      note: 'Fallback formatting used due to AI parsing error',\n      errorDetails: error.message\n    }\n  };\n}\n\nreturn {\n  json: {\n    success: true,\n    data: formattedData,\n    metadata: {\n      scrapedUrl: originalData.url,\n      scrapedAt: originalData.timestamp,\n      robotsInfo: originalData.robotsInfo,\n      userPrompt: originalData.userPrompt,\n      aiFormatted: typeof formattedData === 'object' && !formattedData.metadata?.note\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        -64
+      ],
+      "id": "c4950c79-6ded-4d68-b2da-0e79c1e5b567",
+      "name": "JSON Formatting"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "65a21b0c-69ce-4f1b-98b6-4f8a626ec11b",
+              "leftValue": "={{ $json[\"success\"] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1584,
+        -64
+      ],
+      "id": "6d93b095-c259-484f-a1b4-1973620a39ee",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "scrape-website",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1f275b71-9447-48db-abee-fd6bad1fe1be",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        128
+      ],
+      "webhookId": "858dd222-4110-490a-9695-f949a81699c4",
+      "notesInFlow": true,
+      "notes": "Accepts POST requests with scraping parameters"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"body\": {\n    \"url\": \"{{ $item('0').$node['mcp-input'].json['url'] }}\",\n    \"userPrompt\": \"{{ $item('0').$node['mcp-input'].json['userPrompt'] }}\",\n    \"selectors\": {\n      \"title\": \"{{ $item('0').$node['mcp-input'].json['title'] }}\",\n      \"content\": \"{{ $item('0').$node['mcp-input'].json['content'] }}\",\n      \"links\": \"{{ $item('0').$node['mcp-input'].json['links'] }}\",\n      \"images\": \"{{ $item('0').$node['mcp-input'].json['images'] }}\"\n    }\n  }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -256,
+        -176
+      ],
+      "id": "32537a4c-1644-4c92-997d-687242e52dba",
+      "name": "Format Input"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "url"
+            },
+            {
+              "name": "userPrompt"
+            },
+            {
+              "name": "title"
+            },
+            {
+              "name": "content"
+            },
+            {
+              "name": "links"
+            },
+            {
+              "name": "images"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -432,
+        -320
+      ],
+      "id": "5d0f681c-c849-4c13-9b26-8c955b175fde",
+      "name": "mcp-input"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Check robots.txt": {
+      "main": [
+        [
+          {
+            "node": "analyze-robots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "validate-input": {
+      "main": [
+        [
+          {
+            "node": "Check robots.txt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Website": {
+      "main": [
+        [
+          {
+            "node": "extract-data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analyze-robots": {
+      "main": [
+        [
+          {
+            "node": "Scrape Website",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extract-data": {
+      "main": [
+        [
+          {
+            "node": "AI Formatting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Formatting": {
+      "main": [
+        [
+          {
+            "node": "JSON Formatting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON Formatting": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "validate-input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Input": {
+      "main": [
+        [
+          {
+            "node": "validate-input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mcp-input": {
+      "main": [
+        [
+          {
+            "node": "Format Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "27cacf7e-1745-458c-a029-93c713eb5642",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2b5e4df2c8f09d3f1c6a9d5feed70e13566f992996d76546c93bb461a05174f7"
+  },
+  "id": "k2Hf0E5da1jzpLHn",
+  "tags": []
+}
