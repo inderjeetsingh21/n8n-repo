@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Video Generation Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group textarea,
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .progress-text {
+            margin-top: 10px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .result-container {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .result-container.active {
+            display: block;
+        }
+
+        .result-video {
+            width: 100%;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .result-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .result-info strong {
+            color: #333;
+        }
+
+        .error-container {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            color: #856404;
+        }
+
+        .error-container.active {
+            display: block;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #0d47a1;
+        }
+
+        .warning-text {
+            color: #f44336;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .warning-text.active {
+            display: block;
+        }
+
+        .streaming-options {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .streaming-options h3 {
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .row {
+                grid-template-columns: 1fr;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 Text to Video Generation</h1>
+            <p>Test your n8n workflow for AI video generation</p>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <strong>ℹ️ Info:</strong> This tool sends requests to your n8n workflow to generate videos using AI. Fill in the form below and click generate.
+            </div>
+
+            <form id="videoForm">
+                <div class="form-group">
+                    <label for="prompt">Video Prompt *</label>
+                    <textarea 
+                        id="prompt" 
+                        name="prompt" 
+                        placeholder="Describe what you want to show in the video (e.g., 'A boy and chipmunk sitting on a tree stump in a sunny forest')"
+                        required
+                    ></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="imageUrl">Image URL (Optional)</label>
+                    <input 
+                        type="url" 
+                        id="imageUrl" 
+                        name="imageUrl" 
+                        placeholder="https://example.com/reference-image.jpg"
+                    >
+                </div>
+
+                <div class="row">
+                    <div class="form-group">
+                        <label for="aspectRatio">Aspect Ratio *</label>
+                        <select id="aspectRatio" name="aspectRatio" required>
+                            <option value="16:9">16:9 (Horizontal)</option>
+                            <option value="9:16">9:16 (Vertical)</option>
+                            <option value="1:1">1:1 (Square)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="duration">Duration *</label>
+                        <select id="duration" name="duration" required>
+                            <option value="5">5 seconds</option>
+                            <option value="10">10 seconds</option>
+                        </select>
+                        <small class="warning-text" id="durationWarning">⚠️ 10-second videos cannot use 1080p quality</small>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="form-group">
+                        <label for="quality">Quality *</label>
+                        <select id="quality" name="quality" required>
+                            <option value="720p">720p (Standard)</option>
+                            <option value="1080p">1080p (HD)</option>
+                        </select>
+                        <small class="warning-text" id="qualityWarning">⚠️ 1080p cannot generate 10-second videos</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="waterMark">Watermark Text</label>
+                        <input 
+                            type="text" 
+                            id="waterMark" 
+                            name="waterMark" 
+                            placeholder="Leave empty for no watermark"
+                        >
+                    </div>
+                </div>
+
+                <div class="streaming-options">
+                    <h3>⚙️ Advanced Options</h3>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="enableStreaming" name="enableStreaming">
+                        <label for="enableStreaming">Enable HTTP Streaming (Real-time progress)</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="showProgress" name="showProgress" checked>
+                        <label for="showProgress">Show Progress Bar</label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="generateBtn">
+                    Generate Video
+                </button>
+            </form>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill">0%</div>
+                </div>
+                <div class="progress-text" id="progressText">Initializing...</div>
+            </div>
+
+            <div class="error-container" id="errorContainer">
+                <strong>⚠️ Error:</strong> <span id="errorMessage"></span>
+            </div>
+
+            <div class="result-container" id="resultContainer">
+                <h3>✅ Video Generated Successfully!</h3>
+                <video class="result-video" id="resultVideo" controls></video>
+                <div class="result-info" id="resultInfo"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('videoForm');
+        const generateBtn = document.getElementById('generateBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const errorContainer = document.getElementById('errorContainer');
+        const errorMessage = document.getElementById('errorMessage');
+        const resultContainer = document.getElementById('resultContainer');
+        const resultVideo = document.getElementById('resultVideo');
+        const resultInfo = document.getElementById('resultInfo');
+        
+        const durationSelect = document.getElementById('duration');
+        const qualitySelect = document.getElementById('quality');
+        const durationWarning = document.getElementById('durationWarning');
+        const qualityWarning = document.getElementById('qualityWarning');
+
+        // Validation for duration and quality constraints
+        function validateDurationQuality() {
+            const duration = durationSelect.value;
+            const quality = qualitySelect.value;
+
+            if (duration === '10' && quality === '1080p') {
+                durationWarning.classList.add('active');
+                qualityWarning.classList.add('active');
+                return false;
+            } else {
+                durationWarning.classList.remove('active');
+                qualityWarning.classList.remove('active');
+                return true;
+            }
+        }
+
+        durationSelect.addEventListener('change', validateDurationQuality);
+        qualitySelect.addEventListener('change', validateDurationQuality);
+
+        function showError(message) {
+            errorContainer.classList.add('active');
+            errorMessage.textContent = message;
+            progressContainer.classList.remove('active');
+        }
+
+        function hideError() {
+            errorContainer.classList.remove('active');
+        }
+
+        function updateProgress(percent, message) {
+            if (document.getElementById('showProgress').checked) {
+                progressContainer.classList.add('active');
+                progressFill.style.width = percent + '%';
+                progressFill.textContent = percent + '%';
+                progressText.textContent = message;
+            }
+        }
+
+        function showResult(videoUrl, info) {
+            progressContainer.classList.remove('active');
+            resultContainer.classList.add('active');
+            resultVideo.src = videoUrl;
+            resultInfo.innerHTML = `
+                <strong>Video Information:</strong><br>
+                ${info}
+            `;
+        }
+
+        async function generateVideo(formData) {
+            const webhookUrl = 'YOUR_N8N_WEBHOOK_URL';
+            const enableStreaming = document.getElementById('enableStreaming').checked;
+
+            const payload = {
+                prompt: formData.get('prompt'),
+                imageUrl: formData.get('imageUrl') || '',
+                aspectRatio: formData.get('aspectRatio'),
+                duration: parseInt(formData.get('duration')),
+                quality: formData.get('quality'),
+                waterMark: formData.get('waterMark') || ''
+            };
+
+            hideError();
+            resultContainer.classList.remove('active');
+            updateProgress(0, 'Initializing request...');
+
+            try {
+                if (enableStreaming) {
+                    // HTTP Streaming mode
+                    updateProgress(10, 'Connecting to streaming endpoint...');
+                    
+                    const response = await fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    updateProgress(30, 'Streaming video data...');
+
+                    // For streaming, we need to read the response as it comes
+                    const reader = response.body.getReader();
+                    const chunks = [];
+                    let receivedLength = 0;
+
+                    while (true) {
+                        const {done, value} = await reader.read();
+                        
+                        if (done) break;
+                        
+                        chunks.push(value);
+                        receivedLength += value.length;
+                        
+                        // Update progress based on received data (estimate)
+                        const progress = Math.min(30 + (receivedLength / 100000) * 60, 90);
+                        updateProgress(Math.floor(progress), `Receiving video data... ${(receivedLength / 1024).toFixed(0)} KB`);
+                    }
+
+                    updateProgress(95, 'Processing video...');
+
+                    // Combine chunks
+                    const blob = new Blob(chunks, { type: 'video/mp4' });
+                    const videoUrl = URL.createObjectURL(blob);
+
+                    updateProgress(100, 'Video generated successfully!');
+
+                    showResult(videoUrl, `
+                        Aspect Ratio: ${payload.aspectRatio}<br>
+                        Duration: ${payload.duration} seconds<br>
+                        Quality: ${payload.quality}<br>
+                        File Size: ${(blob.size / 1024 / 1024).toFixed(2)} MB<br>
+                        Streaming: Enabled
+                    `);
+
+                } else {
+                    // Standard mode (non-streaming)
+                    updateProgress(20, 'Sending request to n8n workflow...');
+
+                    const response = await fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    updateProgress(50, 'Processing by AI model...');
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    updateProgress(70, 'Generating video...');
+
+                    const result = await response.json();
+                    
+                    updateProgress(90, 'Finalizing...');
+
+                    // Handle the response based on your n8n workflow output
+                    if (result.videoUrl) {
+                        updateProgress(100, 'Video generated successfully!');
+                        showResult(result.videoUrl, `
+                            Aspect Ratio: ${payload.aspectRatio}<br>
+                            Duration: ${payload.duration} seconds<br>
+                            Quality: ${payload.quality}<br>
+                            Streaming: Disabled
+                        `);
+                    } else if (result.error) {
+                        throw new Error(result.error);
+                    } else {
+                        // If the response is binary data
+                        const blob = await response.blob();
+                        const videoUrl = URL.createObjectURL(blob);
+                        
+                        updateProgress(100, 'Video generated successfully!');
+                        
+                        showResult(videoUrl, `
+                            Aspect Ratio: ${payload.aspectRatio}<br>
+                            Duration: ${payload.duration} seconds<br>
+                            Quality: ${payload.quality}<br>
+                            File Size: ${(blob.size / 1024 / 1024).toFixed(2)} MB<br>
+                            Streaming: Disabled
+                        `);
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(`Failed to generate video: ${error.message}`);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Generate Video';
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!validateDurationQuality()) {
+                showError('Invalid combination: 10-second videos cannot use 1080p quality, and 1080p cannot generate 10-second videos.');
+                return;
+            }
+
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+
+            const formData = new FormData(form);
+            await generateVideo(formData);
+        });
+
+        // Set default value
+        document.getElementById('prompt').value = 'A cheerful young boy sitting on a tree stump in a sunny forest, gently holding a curious chipmunk in his hands.';
+    </script>
+</body>
+</html>
